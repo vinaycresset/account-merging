@@ -228,6 +228,16 @@ if cct_file and addepar_file:
         [ADP_HOLDING_ACCOUNT, ADP_TLLE, ADP_VALUE, ADP_OWNER_ID, ADP_ENTITY_ID],
     )
 
+    # Show the raw imported files so the user can confirm they parsed correctly.
+    st.subheader("Imported files")
+    tab_cct, tab_adp = st.tabs(
+        [f"CCT ({len(cct_df):,} rows)", f"Addepar ({len(addepar_df):,} rows)"]
+    )
+    with tab_cct:
+        st.dataframe(cct_df, use_container_width=True)
+    with tab_adp:
+        st.dataframe(addepar_df, use_container_width=True)
+
     missing = require_columns(
         cct_df, [CCT_NAME, CCT_ACCOUNT, CCT_MARKET_VALUE], "CCT"
     )
@@ -240,6 +250,7 @@ if cct_file and addepar_file:
     if not missing:
         result = reconcile(cct_df, addepar_df)
 
+        st.subheader("Reconciled result")
         # Summary counts.
         counts = result[STATUS_COL].value_counts()
         c1, c2, c3 = st.columns(3)
