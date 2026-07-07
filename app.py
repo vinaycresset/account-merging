@@ -45,12 +45,42 @@ ORANGE = "background-color: #fcd9a5"  # in CCT but not Addepar
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def read_any(uploaded_file) -> pd.DataFrame:
-    """Read an uploaded CSV or Excel file into a DataFrame."""
+def _load_raw(uploaded_file) -> pd.DataFrame:
+    """Read a CSV/Excel upload with no header, everything as text."""
     name = uploaded_file.name.lower()
     if name.endswith(".csv"):
-        return pd.read_csv(uploaded_file)
-    return pd.read_excel(uploaded_file)
+        return pd.read_csv(uploaded_file, header=None, dtype=object)
+    # .xlsx -> openpyxl, .xls -> xlrd (pandas picks the engine automatically)
+    return pd.read_excel(uploaded_file, header=None, dtype=object)
+
+
+def read_any(uploaded_file, expected_cols) -> pd.DataFrame:
+    """Read an upload, auto-detecting the header row.
+
+    Real CCT/Addepar exports often have title/metadata rows above the actual
+    column headers. We scan the first rows and use the one that contains the
+    most of the expected column names as the header.
+    """
+    raw = _load_raw(uploaded_file)
+    if raw.empty:
+        return pd.DataFrame()
+
+    expected = {str(c).strip().lower() for c in expected_cols}
+    best_idx, best_hits = 0, -1
+    for i in range(min(len(raw), 25)):
+        row_vals = {str(v).strip().lower() for v in raw.iloc[i].tolist()}
+        hits = len(expected & row_vals)
+        if hits > best_hits:
+            best_hits, best_idx = hits, i
+
+    header = [str(v).strip() for v in raw.iloc[best_idx].tolist()]
+    df = raw.iloc[best_idx + 1:].copy()
+    df.columns = header
+    df = df.reset_index(drop=True)
+    # Drop entirely-empty rows and unnamed/empty columns.
+    df = df.dropna(axis=0, how="all")
+    df = df.loc[:, [c for c in df.columns if c and str(c).lower() != "nan"]]
+    return df
 
 
 def normalize_name(series: pd.Series) -> pd.Series:
@@ -192,8 +222,11 @@ with col2:
     )
 
 if cct_file and addepar_file:
-    cct_df = read_any(cct_file)
-    addepar_df = read_any(addepar_file)
+    cct_df = read_any(cct_file, [CCT_NAME, CCT_ACCOUNT, CCT_MARKET_VALUE])
+    addepar_df = read_any(
+        addepar_file,
+        [ADP_HOLDING_ACCOUNT, ADP_TLLE, ADP_VALUE, ADP_OWNER_ID, ADP_ENTITY_ID],
+    )
 
     missing = require_columns(
         cct_df, [CCT_NAME, CCT_ACCOUNT, CCT_MARKET_VALUE], "CCT"
