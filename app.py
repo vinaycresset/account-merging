@@ -16,6 +16,7 @@ Reconciliation rules:
 """
 
 import io
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -201,8 +202,26 @@ def to_excel_bytes(styler) -> bytes:
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="CCT ↔ Addepar Reconciliation", layout="wide")
+st.set_page_config(
+    page_title="CCT ↔ Addepar Reconciliation", page_icon="🦕", layout="wide"
+)
+
+ASSETS = Path(__file__).parent / "assets"
+DINOS = [
+    ("trex.jpg", "Tyrannosaurus"),
+    ("stegosaurus.jpg", "Stegosaurus"),
+    ("triceratops.jpg", "Triceratops"),
+    ("brachiosaurus.jpg", "Brachiosaurus"),
+]
+
 st.title("CCT ↔ Addepar Reconciliation")
+
+# A herd of dinosaurs stands guard over your reconciliation.
+dino_cols = st.columns(len(DINOS))
+for col, (filename, caption) in zip(dino_cols, DINOS):
+    img = ASSETS / filename
+    if img.exists():
+        col.image(str(img), caption=caption, use_container_width=True)
 
 st.markdown(
     "Upload both files, then the Addepar **Value as of 3/31** is updated with "
