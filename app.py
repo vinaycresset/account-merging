@@ -207,21 +207,16 @@ st.set_page_config(
 )
 
 ASSETS = Path(__file__).parent / "assets"
-DINOS = [
-    ("trex.jpg", "Tyrannosaurus"),
-    ("stegosaurus.jpg", "Stegosaurus"),
-    ("triceratops.jpg", "Triceratops"),
-    ("brachiosaurus.jpg", "Brachiosaurus"),
-]
+DINOS = ["trex.jpg", "stegosaurus.jpg", "triceratops.jpg", "brachiosaurus.jpg"]
 
 st.title("CCT ↔ Addepar Reconciliation")
 
 # A herd of dinosaurs stands guard over your reconciliation.
 dino_cols = st.columns(len(DINOS))
-for col, (filename, caption) in zip(dino_cols, DINOS):
+for col, filename in zip(dino_cols, DINOS):
     img = ASSETS / filename
     if img.exists():
-        col.image(str(img), caption=caption, use_container_width=True)
+        col.image(str(img), use_container_width=True)
 
 st.markdown(
     "Upload both files, then the Addepar **Value as of 3/31** is updated with "
